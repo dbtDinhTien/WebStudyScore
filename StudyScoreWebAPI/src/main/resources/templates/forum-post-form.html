@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${post.id != null} ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'">Bài viết</title>
+    <th:block th:replace="base :: bootstrap"></th:block>
+    <script th:src="@{/js/main.js}" defer></script>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <main class="container mt-4">
+        <h2 class="mb-4 text-center" th:text="${post.id != null} ? '✏️ Chỉnh sửa bài viết' : '📝 Tạo bài viết mới'"></h2>
+
+        <form th:action="${post.id != null} ? @{'/forum/edit/' + ${post.id}} : @{/forum/add}"
+              th:object="${post}"
+              method="post"
+              class="bg-white p-4 rounded shadow-sm">
+
+            <input type="hidden" th:field="*{id}" />
+
+            <div class="mb-3">
+                <label class="form-label">Tiêu đề:</label>
+                <input type="text" th:field="*{title}" class="form-control" required />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nội dung:</label>
+                <textarea th:field="*{content}" rows="10" cols="60" class="form-control" required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success">💾 Lưu</button>
+            <a th:href="@{/forum}" class="btn btn-secondary ms-2">❌ Hủy</a>
+        </form>
+    </main>
+
+    <div th:replace="base :: footer"></div>
+</body>
+</html>

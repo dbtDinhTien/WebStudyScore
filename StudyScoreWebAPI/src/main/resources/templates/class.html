@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Danh sách lớp học</title>
+    <th:block th:replace="base :: bootstrap"></th:block>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <main class="container mt-4">
+        <h2 class="text-primary mb-4">> Danh sách lớp học</h2>
+
+        <div class="d-flex justify-content-between mb-3">
+            <form class="d-flex" th:action="@{/classes}" method="get">
+                <input class="form-control me-2" type="search" name="keyword" placeholder="Tìm lớp học..." aria-label="Search" th:value="${keyword}">
+                <button class="btn btn-outline-primary" type="submit">Tìm</button>
+            </form>
+
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addClassModal">
+                <i class="bi bi-plus-circle me-1"></i> Thêm lớp
+            </button>
+        </div>
+
+        <table class="table table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Mã lớp</th>
+                    <th>Tên lớp</th>
+                    <th>Giáo viên chủ nhiệm</th>
+                    <th>Chỉnh sửa</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="c, iterStat : ${classes}">
+                    <td th:text="${iterStat.count}"></td>
+                    <td th:text="${c.code}"></td>
+                    <td th:text="${c.name}"></td>
+                    <td th:text="${c.lecturerId != null ? c.lecturerId.firstName + ' ' + c.lecturerId.lastName : 'Chưa có'}"></td>
+                    <td>
+                        <button class="btn btn-danger" th:onclick="'deleteObject(\''+@{/api/classes/}+'\','+${c.id}+')'">&#128465;</button>
+                        <button class="btn btn-success"
+                                th:attr="data-id=${c.id},data-code=${c.code}, 
+                                data-name=${c.name}, data-name=${c.name}, data-lecturer-id=${c.lecturerId != null ? c.lecturerId.id : ''}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editClassModal"
+                                onclick="populateEditClassModal(this)">
+                            &#128736;
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/classes(page=${currentPage - 1})}"><<</a>
+                    </li>
+
+                    <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}"
+                        th:classappend="${i == currentPage} ? 'active'">
+                        <a class="page-link" th:href="@{/classes(page=${i})}"
+                           th:text="${i}"></a>
+                    </li>
+
+                    <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/classes(page=${currentPage + 1})}">>></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Modal Thêm Lớp -->
+        <div class="modal fade" id="addClassModal" tabindex="-1" aria-labelledby="addClassModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <form th:action="@{/classes/add}" method="post" class="modal-content" th:object="${class}">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addClassModalLabel">Thêm lớp học</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="code" class="form-label">Mã lớp</label>
+                            <input type="text" class="form-control" id="code" name="code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Tên lớp</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="lecturer" class="form-label">Giáo viên chủ nhiệm</label>
+                            <select id="lecturer" name="lecturerId" class="form-select" required>
+                                <option value="" disabled selected>Chọn giáo viên</option>
+                                <option th:each="lecturer : ${lecturers}"
+                                        th:value="${lecturer.id}"
+                                        th:text="${lecturer.firstName + ' ' + lecturer.lastName}">
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Thêm lớp</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- Modal Chỉnh sửa Lớp -->
+        <div class="modal fade" id="editClassModal" tabindex="-1" aria-labelledby="editClassModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <form id="editClassForm" method="post" class="modal-content" enctype="multipart/form-data">
+                    <input type="hidden" id="edit-id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editClassModalLabel">Chỉnh sửa lớp học</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit-code" class="form-label">Mã lớp</label>
+                            <input type="text" class="form-control" id="edit-code" name="code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-name" class="form-label">Tên lớp</label>
+                            <input type="text" class="form-control" id="edit-name" name="name" required>
+                        </div>
+           
+                        <div class="mb-3">
+                            <label for="edit-lecturer" class="form-label">Giáo viên chủ nhiệm</label>
+                            <select id="edit-lecturer" name="lecturerId" class="form-select" required>
+                                <option value="" disabled>Chọn giáo viên</option>
+                                <option th:each="lecturer : ${lecturers}" th:value="${lecturer.id}"
+                                        th:text="${lecturer.firstName + ' ' + lecturer.lastName}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+    </main>
+
+    <script th:src="@{/js/main.js}"></script>
+
+    <div th:replace="base :: footer"></div>
+</body>
+</html>

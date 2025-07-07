@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <title th:text="${post.title}">Chi tiết bài viết</title>
+    <th:block th:replace="base :: bootstrap"></th:block>
+    <script th:src="@{/js/main.js}" defer></script>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <main class="container mt-4">
+        <h2 th:text="${post.title}">Tiêu đề</h2>
+        <p class="text-muted" th:text="${#dates.format(post.createdAt, 'dd-MM-yyyy HH:mm')}">Ngày đăng</p>
+        <div class="mb-3">
+            <p th:text="${post.content}">Nội dung bài viết</p>
+        </div>
+
+        <div class="mb-3">
+            <a class="btn btn-primary" th:href="@{'/forum/edit/' + ${post.id}}">✏️ Chỉnh sửa</a>
+            <button class="btn btn-danger" 
+                    th:onclick="'deletePost(\'' + @{/api/posts/delete/{id}(id=${post.id})} + '\')'">
+                🗑️ Xóa
+            </button>
+            <a class="btn btn-secondary" th:href="@{/forum}">🔙 Quay lại danh sách</a>
+        </div>
+
+        <hr/>
+        <h4>💬 Bình luận</h4>
+
+        <ul class="list-group mb-4">
+            <li class="list-group-item" th:each="comment : ${post.forumCommentSet}">
+                <p th:text="${comment.content}" class="mb-1">Nội dung bình luận</p>
+                <div>
+                    <a class="btn btn-sm btn-outline-primary" th:href="@{'/forum/comment/edit/' + ${comment.id}}">✏️ Sửa</a>
+                    <button class="btn btn-outline-danger btn-sm" th:onclick="'deleteComment(\'' + @{/api/comments/{id}(id=${comment.id})} + '\')'">
+                        🗑️ Xóa
+                    </button>
+
+                </div>
+            </li>
+        </ul>
+
+        <h5>➕ Thêm bình luận</h5>
+        <form th:action="@{'/forum/' + ${post.id} + '/comment'}" method="post" th:object="${newComment}">
+            <div class="mb-3">
+                <textarea th:field="*{content}" class="form-control" rows="4" placeholder="Nhập bình luận..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-success">Gửi bình luận</button>
+        </form>
+    </main>
+
+    <div th:replace="base :: footer"></div>
+</body>
+</html>
+
+

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Danh sách điểm sinh viên</title>
+    <th:block th:replace="base :: bootstrap"></th:block>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <main class="container mt-4">
+        <h2 class="text-primary mb-4">> Danh sách điểm sinh viên</h2>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <form class="d-flex align-items-center" th:action="@{/scores}" method="get" role="search">
+                <input class="form-control me-2" type="search" name="keyword"
+                       placeholder="Tìm theo tên sinh viên, môn học..."
+                       th:value="${keyword}" aria-label="Tìm kiếm">
+
+                <!-- Bộ lọc theo lớp-môn học -->
+                <select class="form-select me-2" name="classSubjectId" aria-label="Chọn lớp môn học">
+                    <option value="">Tất cả lớp-môn học</option>
+                    <option th:each="cs : ${classSubjects}"
+                            th:value="${cs.id}"
+                            th:text="${cs.subjectId.subjectName + ' - ' + cs.classId.name}"
+                            th:selected="${classSubjectId} == ${cs.id}">
+                    </option>
+                </select>
+
+                <!-- Bộ lọc sắp xếp -->
+                <select class="form-select me-2" name="orderBy" id="orderBy" aria-label="Sắp xếp theo">
+                    <option value="studentName" th:selected="${orderBy} == 'studentName'">Tên sinh viên</option>
+                    <option value="updatedAt" th:selected="${orderBy} == 'updatedAt'">Ngày cập nhật</option>
+                </select>
+
+                <button class="btn btn-outline-primary" type="submit">Tìm</button>
+            </form>
+
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addScoreModal" type="button">
+                <i class="bi bi-plus-circle me-1"></i> Thêm điểm
+            </button>
+        </div>
+
+
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Sinh viên</th>
+                    <th>Môn học</th>
+                    <th>Điểm giữa kỳ</th>
+                    <th>Điểm cuối kỳ</th>
+                    <th>Điểm cộng 1</th>
+                    <th>Điểm cộng 2</th>
+                    <th>Điểm cộng 3</th>
+                    <th>Trạng thái khóa</th>
+                    <th>Cập nhật</th>
+                    <th>Chỉnh sửa</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="s, iterStat : ${scores}">
+                    <td th:text="${iterStat.count}"></td>
+                    <td th:text="${s.studentClassSubjectId.studentId.firstName + ' ' + s.studentClassSubjectId.studentId.lastName}"></td>
+                    <td th:text="${s.studentClassSubjectId.classSubjectId.subjectId.subjectName}"></td>
+                    <td th:text="${s.midtermScore}"></td>
+                    <td th:text="${s.finalScore}"></td>
+                    <td th:text="${s.extraScore1}"></td>
+                    <td th:text="${s.extraScore2}"></td>
+                    <td th:text="${s.extraScore3}"></td>
+                    <td th:text="${s.lockStatus}"></td>
+                    <td th:text="${#dates.format(s.updatedAt, 'dd/MM/yyyy HH:mm')}"></td>
+                    <td>
+                        <button class="btn btn-danger"
+                                th:onclick="'deleteObject(\'' + @{/api/scores/} + '\',' + ${s.id} + ')'">
+                            &#128465;
+                        </button>
+                        <button class="btn btn-success"
+                                th:attr="data-id=${s.id},
+                                data-student-class-subject-id=${s.studentClassSubjectId.id},
+                                data-midterm-score=${s.midtermScore},
+                                data-final-score=${s.finalScore},
+                                data-extra1=${s.extraScore1},
+                                data-extra2=${s.extraScore2},
+                                data-extra3=${s.extraScore3},
+                                data-lock-status=${s.lockStatus}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editScoreModal"
+                                onclick="populateEditScoreModal(this)">
+                            &#128736;
+                        </button>
+                    </td>
+                </tr>
+
+            </tbody>
+        </table>
+
+        <!-- Phân trang -->
+        <div class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/scores(page=${currentPage - 1})}">«</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}"
+                        th:classappend="${i == currentPage} ? 'active'">
+                        <a class="page-link" th:href="@{/scores(page=${i})}" th:text="${i}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/scores(page=${currentPage + 1})}">»</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Modal Thêm -->
+        <div class="modal fade" id="addScoreModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form th:action="@{/scores/add}" method="post" th:object="${score}" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Thêm điểm sinh viên</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Sinh viên - Môn học</label>
+                            <select name="studentClassSubjectId" class="form-select" required>
+                                <option value="" disabled selected>Chọn sinh viên - môn học</option>
+                                <option th:each="scs : ${studentClassSubjects}" 
+                                        th:value="${scs.id}" 
+                                        th:text="${scs.studentId.firstName + ' ' + scs.studentId.lastName + ' - ' + scs.classSubjectId.subjectId.subjectName}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Giữa kỳ</label>
+                                <input type="number" step="0.1" class="form-control" name="midtermScore">
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Cuối kỳ</label>
+                                <input type="number" step="0.1" class="form-control" name="finalScore">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Cộng 1</label>
+                                <input type="number" step="0.1" class="form-control" name="extraScore1">
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Cộng 2</label>
+                                <input type="number" step="0.1" class="form-control" name="extraScore2">
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Cộng 3</label>
+                                <input type="number" step="0.1" class="form-control" name="extraScore3">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái khóa</label>
+                            <select class="form-select" name="lockStatus">
+                                <option value="draft">Mở</option>
+                                <option value="locked">Khóa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Thêm</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Chỉnh sửa -->
+        <div class="modal fade" id="editScoreModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form id="editScoreForm" method="post" class="modal-content">
+                    <input type="hidden" name="id" id="edit-id">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chỉnh sửa điểm</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit-studentClassSubjectId" class="form-label">Sinh viên - Môn học</label>
+                            <select id="edit-studentClassSubjectId" name="studentClassSubjectId" class="form-select" required>
+                                <option value="" disabled selected>Chọn sinh viên - môn học</option>
+                                <option th:each="scs : ${studentClassSubjects}" 
+                                        th:value="${scs.id}" 
+                                        th:text="${scs.studentId.firstName + ' ' + scs.studentId.lastName + ' - ' + scs.classSubjectId.subjectId.subjectName}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Giữa kỳ</label>
+                                <input type="number" step="0.1" class="form-control" id="edit-midterm-score" name="midtermScore">
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Cuối kỳ</label>
+                                <input type="number" step="0.1" class="form-control" id="edit-final-score" name="finalScore">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col mb-3">
+                                <label class="form-label">Cộng 1</label>
+                                <input type="number" step="0.1" class="form-control" id="edit-extra1" name="extraScore1">
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Cộng 2</label>
+                                <input type="number" step="0.1" class="form-control" id="edit-extra2" name="extraScore2">
+                            </div>
+                            <div class="col mb-3">
+                                <label class="form-label">Cộng 3</label>
+                                <input type="number" step="0.1" class="form-control" id="edit-extra3" name="extraScore3">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái khóa</label>
+                            <select class="form-select" id="edit-lock-status" name="lockStatus">
+                                <option value="draft">Mở</option>
+                                <option value="locked">Khóa</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Lưu</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <script th:src="@{/js/main.js}"></script>
+    <div th:replace="base :: footer"></div>
+</body>
+</html>

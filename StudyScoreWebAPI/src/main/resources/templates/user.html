@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Danh sách người dùng</title>
+    <th:block th:replace="base :: bootstrap"></th:block>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <main class="container mt-4">
+        <h2 class="text-primary mb-4">> Danh sách người dùng</h2>
+
+        <div class="d-flex justify-content-between mb-3">
+            <form class="d-flex" th:action="@{/users}" method="get">
+                <input class="form-control me-2" type="search" name="keyword" placeholder="Tìm người dùng..." aria-label="Search" th:value="${keyword}">
+                <button class="btn btn-outline-primary" type="submit">Tìm</button>
+                <select class="form-select me-2" name="role" aria-label="Chọn vai trò">
+                    <option value="" th:selected="${role == null or role == ''}">Tất cả vai trò</option>
+                    <option value="ROLE_STUDENT" th:selected="${role == 'ROLE_STUDENT'}">Sinh viên</option>
+                    <option value="ROLE_LECTURER" th:selected="${role == 'ROLE_LECTURER'}">Giảng viên</option>
+                </select>
+            </form>
+
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="bi bi-plus-circle me-1"></i> Thêm người dùng
+            </button>
+        </div>
+
+        <table class="table table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Ảnh đại diện</th>
+                    <th>Họ</th>
+                    <th>Tên</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                    <th>Mã SV</th>
+                    <th>Mã GV</th>
+                    <th>Lớp</th>
+                    <th>Trạng thái</th>
+                    <th>Chỉnh sửa</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="u, iterStat : ${users}">
+                    <td th:text="${iterStat.count}"></td>
+                    <td>
+                        <img th:if="${u.avatarUrl != null and !#strings.isEmpty(u.avatarUrl)}"
+                             th:src="${u.avatarUrl}"
+                             alt="Avatar"
+                             style="width: 60px; height: auto;" />
+
+                        <span th:if="${u.avatarUrl == null or #strings.isEmpty(u.avatarUrl)}">Không có ảnh</span>
+                    </td>
+                    <td th:text="${u.firstName}"></td>
+                    <td th:text="${u.lastName}"></td>
+                    <td th:text="${u.email}"></td>
+                    <td th:text="${u.role}"></td>
+                    <td th:text="${u.studentCode}"></td>
+                    <td th:text="${u.lecturerCode}"></td>
+                    <td th:text="${u.classId != null ? u.classId.name : 'Không có'}"></td>
+                    <td th:text="${u.active ? 'Hoạt động' : 'Không hoạt động'}"></td>
+                    <td>
+                        <button class="btn btn-danger" th:onclick="'deleteObject(\''+@{/api/users/}+'\','+${u.id}+')'">&#128465;</button>
+                        <button class="btn btn-success"
+                                th:attr="data-id=${u.id},
+                                data-first-name=${u.firstName},
+                                data-last-name=${u.lastName},
+                                data-email=${u.email},
+                                data-role=${u.role},
+                                data-student-code=${u.studentCode},
+                                data-lecturer-code=${u.lecturerCode},
+                                data-active=${u.active},
+                                data-avatar=${u.avatarUrl},
+                                data-class-id=${u.classId != null ? u.classId.id : ''}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editUserModal"
+                                onclick="populateEditUserModal(this)">
+                            &#128736;
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/users(page=${currentPage - 1})}"><<</a>
+                    </li>
+
+                    <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}"
+                        th:classappend="${i == currentPage} ? 'active'">
+                        <a class="page-link" th:href="@{/users(page=${i})}"
+                           th:text="${i}"></a>
+                    </li>
+
+                    <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/users(page=${currentPage + 1})}">>></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Modal Thêm Người Dùng -->
+        <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form th:action="@{/users/add}" method="post" enctype="multipart/form-data" th:object="${user}">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Thêm người dùng</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="mb-3 col-md-6">
+                                    <label for="firstName" class="form-label">Tên</label>
+                                    <input type="text" class="form-control" id="firstName" name="first_name"  required>
+                                </div>
+                                <div class="mb-3 col-md-6">
+                                    <label for="lastName" class="form-label">Họ</label>
+                                    <input type="text" class="form-control" id="lastName" name="last_name" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mật khẩu</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="classId" class="form-label">Lớp học cho sinh viên</label>
+                                <select class="form-select" id="classId" name="class_id">
+                                    <option value="">-- Chọn lớp --</option>
+                                    <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.name}"></option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="mb-3 col-md-6">
+                                    <label for="studentCode" class="form-label">Mã SV</label>
+                                    <input type="text" class="form-control" id="studentCode" name="student_code" >
+                                </div>
+                                <div class="mb-3 col-md-6">
+                                    <label for="lecturerCode" class="form-label">Mã GV</label>
+                                    <input type="text" class="form-control" id="lecturerCode" name="lecturer_code" >
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Vai trò</label>
+                                <select class="form-select" id="role" name="role"  required>
+                                    <option value="ROLE_STUDENT">Sinh viên</option>
+                                    <option value="ROLE_LECTURER">Giảng viên</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="avatar" class="form-label">Ảnh đại diện</label>
+                                <input type="file" class="form-control" id="avatar" name="avatar">
+
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="active" name="active">
+                                <label class="form-check-label" for="active" >Hoạt động</label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Modal Sửa Người Dùng -->
+        <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form id="editScoreForm" method="post" enctype="multipart/form-data" th:object="${user}">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editUserModalLabel">Chỉnh sửa người dùng</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                        </div>
+                        <div class="modal-body">
+
+                            <input type="hidden" id="edit-id" th:field="*{id}" />
+
+                            <div class="row">
+                                <div class="mb-3 col-md-6">
+                                    <label for="edit-firstName" class="form-label">Tên</label>
+                                    <input type="text" class="form-control" id="edit-firstName" th:field="*{firstName}" required>
+                                </div>
+                                <div class="mb-3 col-md-6">
+                                    <label for="edit-lastName" class="form-label">Họ</label>
+                                    <input type="text" class="form-control" id="edit-lastName" th:field="*{lastName}" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="edit-email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="edit-email" th:field="*{email}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="edit-password" class="form-label">Mật khẩu mới (nếu thay đổi)</label>
+                                <input type="password" class="form-control" id="edit-password" name="password" placeholder="Để trống nếu không đổi">
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit-classId" class="form-label">Lớp học cho sinh viên</label>
+                                <select class="form-select" id="edit-classId" th:field="*{classId}">
+                                    <option value="">-- Chọn lớp --</option>
+                                    <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.name}"></option>
+                                </select>
+                            </div>
+
+                            <div class="row">
+                                <div class="mb-3 col-md-6">
+                                    <label for="edit-studentCode" class="form-label">Mã SV</label>
+                                    <input type="text" class="form-control" id="edit-studentCode" th:field="*{studentCode}">
+                                </div>
+                                <div class="mb-3 col-md-6">
+                                    <label for="edit-lecturerCode" class="form-label">Mã GV</label>
+                                    <input type="text" class="form-control" id="edit-lecturerCode" th:field="*{lecturerCode}">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="edit-role" class="form-label">Vai trò</label>
+                                <select class="form-select" id="edit-role" th:field="*{role}" required>
+                                    <option value="ROLE_STUDENT">Sinh viên</option>
+                                    <option value="ROLE_LECTURER">Giảng viên</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <input type="hidden" name="oldImage" id="edit-oldImage" value="">
+                                <label class="form-label">Ảnh hiện tại</label><br>
+                                <img id="current-avatar" src="" alt="Avatar hiện tại" style="max-width: 120px; border-radius: 10px;">
+
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit-file" class="form-label">Hình ảnh mới</label>
+                                <input type="file" class="form-control" id="edit-file" name="file">
+                            </div>
+
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="edit-active" th:field="*{active}">
+                                <label class="form-check-label" for="edit-active">Hoạt động</label>
+                            </div>
+
+
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+    </main>
+
+    <div th:replace="base :: footer"></div>
+    <script th:src="@{/js/main.js}"></script>
+</body>
+</html>

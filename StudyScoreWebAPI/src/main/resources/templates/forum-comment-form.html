@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Chỉnh sửa bình luận</title>
+    <th:block th:replace="base :: bootstrap"></th:block>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <main class="container mt-4">
+        <h2>Chỉnh sửa bình luận</h2>
+
+        <form th:action="@{/forum/comment/update}" method="post" th:object="${comment}">
+            <input type="hidden" th:field="*{id}" />
+            <input type="hidden" name="postId" th:value="${postId}" />
+
+            <div class="mb-3">
+                <textarea th:field="*{content}" class="form-control" rows="4" required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Cập nhật bình luận</button>
+            <a th:href="@{'/forum/' + ${postId}}" class="btn btn-secondary">Hủy</a>
+        </form>
+    </main>
+
+    <div th:replace="base :: footer"></div>
+</body>
+</html>
+
+

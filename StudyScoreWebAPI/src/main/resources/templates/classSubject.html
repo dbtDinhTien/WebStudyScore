@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Danh sách môn học theo lớp học</title>
+    <th:block th:replace="base :: bootstrap"></th:block>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <main class="container mt-4">
+        <h2 class="text-primary mb-4">> Danh sách môn học theo lớp học</h2>
+
+        <div class="d-flex justify-content-between mb-3">
+            <form class="d-flex" th:action="@{/classSubjects}" method="get">
+                <input class="form-control me-2" type="search" name="keyword" placeholder="Tìm kiếm theo môn,lớp,giảng viên..." th:value="${keyword}">
+                <button class="btn btn-outline-primary" type="submit">Tìm</button>
+            </form>
+
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addClassSubjectModal">
+                <i class="bi bi-plus-circle me-1"></i> Thêm môn cho lớp
+            </button>
+        </div>
+
+        <table class="table table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Lớp</th>
+                    <th>Môn học</th>
+                    <th>Giảng viên</th>
+                    <th>Chỉnh sửa</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="cs, iterStat : ${classSubjects}">
+                    <td th:text="${iterStat.count}"></td>
+                    <td th:text="${cs.classId.name}"></td>
+                    <td th:text="${cs.subjectId.subjectName}"></td>
+                    <td th:text="${cs.lecturerId != null ? cs.lecturerId.firstName + ' ' + cs.lecturerId.lastName : 'Chưa phân công'}"></td>
+                    <td>
+                        <button class="btn btn-danger"
+                                th:onclick="'deleteObject(\''+@{/api/classSubjects/}+'\','+${cs.id}+')'">
+                            &#128465;
+                        </button>
+                        <button class="btn btn-success"
+                                th:attr="data-id=${cs.id},
+                                data-class-id=${cs.classId.id},
+                                data-subject-id=${cs.subjectId.id},
+                                data-lecturer-id=${cs.lecturerId != null ? cs.lecturerId.id : ''}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editClassSubjectModal"
+                                th:onclick="populateEditClassSubjectModal(this)">
+                            &#128736;
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-center mt-4">
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/classSubjects(page=${currentPage - 1})}"><<</a>
+                    </li>
+
+                    <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}"
+                        th:classappend="${i == currentPage} ? 'active'">
+                        <a class="page-link" th:href="@{/classSubjects(page=${i})}"
+                           th:text="${i}"></a>
+                    </li>
+
+                    <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/classSubjects(page=${currentPage + 1})}">>></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Modal Thêm  -->
+        <div class="modal fade" id="addClassSubjectModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form th:action="@{/classSubjects/add}" method="post" th:object="${classSubject}" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Thêm môn học cho lớp</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="class" class="form-label">Lớp học</label>
+                            <select id="class" name="classId" class="form-select" required>
+                                <option value="" disabled selected>Chọn lớp</option>
+                                <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.name}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Môn học</label>
+                            <select id="subject" name="subjectId" class="form-select" required>
+                                <option value="" disabled selected>Chọn môn</option>
+                                <option th:each="s : ${subjects}" th:value="${s.id}" th:text="${s.subjectName}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="lecturer" class="form-label">Giảng viên</label>
+                            <select id="lecturer" name="lecturerId" class="form-select">
+                                <option value="" selected>Chưa phân công</option>
+                                <option th:each="l : ${lecturers}" th:value="${l.id}" th:text="${l.firstName + ' ' + l.lastName}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Thêm</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- Modal Chỉnh sửa  -->
+        <div class="modal fade" id="editClassSubjectModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form id="editClassSubjectForm" method="post" class="modal-content">
+                    <input type="hidden" id="edit-cs-id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chỉnh sửa môn học theo lớp</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit-class" class="form-label">Lớp học</label>
+                            <select id="edit-class" name="classId" class="form-select" required>
+                                <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.name}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-subject" class="form-label">Môn học</label>
+                            <select id="edit-subject" name="subjectId" class="form-select" required>
+                                <option th:each="s : ${subjects}" th:value="${s.id}" th:text="${s.subjectName}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-lecturer" class="form-label">Giảng viên</label>
+                            <select id="edit-lecturer" name="lecturerId" class="form-select">
+                                <option value="">Chưa phân công</option>
+                                <option th:each="l : ${lecturers}" th:value="${l.id}" th:text="${l.firstName + ' ' + l.lastName}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Lưu</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script th:src="@{/js/main.js}"></script>
+
+    <div th:replace="base :: footer"></div>
+</body>
+</html>
+

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <title>Danh sách học sinh theo lớp và môn học</title>
+    <th:block th:replace="base :: bootstrap"></th:block>
+</head>
+<body>
+    <div th:replace="base :: header"></div>
+
+    <main class="container mt-4">
+        <h2 class="text-primary mb-4">> Danh sách học sinh theo lớp và môn học</h2>
+
+        <div class="d-flex justify-content-between mb-3">
+            <form class="d-flex" th:action="@{/studentClassSubjects}" method="get">
+                <input class="form-control me-2" type="search" name="keyword"
+                       placeholder="Tìm kiếm theo tên, lớp, môn..."
+                       th:value="${keyword}">
+                <button class="btn btn-outline-primary" type="submit">Tìm</button>
+            </form>
+
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addStudentClassSubjectModal">
+                <i class="bi bi-plus-circle me-1"></i> Thêm học sinh vào lớp - môn
+            </button>
+        </div>
+
+
+        <!-- Bảng danh sách học sinh -->
+        <table class="table table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Học sinh</th>
+                    <th>Lớp</th>
+                    <th>Môn học</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="scs, iterStat : ${studentClassSubjects}">
+                    <td th:text="${iterStat.count}"></td>
+                    <td th:text="${scs.studentId != null ? scs.studentId.firstName + ' ' + scs.studentId.lastName : 'N/A'}"></td>
+                    <td th:text="${scs.classSubjectId != null && scs.classSubjectId.classId != null ? scs.classSubjectId.classId.name : 'N/A'}"></td>
+                    <td th:text="${scs.classSubjectId != null && scs.classSubjectId.subjectId != null ? scs.classSubjectId.subjectId.subjectName : 'N/A'}"></td>
+                    <td>
+                        <a th:href="@{/studentClassSubjects/delete/{id}(id=${scs.id})}" class="btn btn-danger btn-sm"
+                           onclick="return confirm('Bạn có chắc chắn muốn xóa?');">Xóa</a>
+                        <button class="btn btn-success btn-sm"
+                                th:attr="data-id=${scs.id},
+                                data-student-id=${scs.studentId.id},
+                                data-student-name=${scs.studentId.firstName + ' ' + scs.studentId.lastName},
+                                data-class-subject-id=${scs.classSubjectId.id},
+                                data-class-subject-name=${scs.classSubjectId.classId.name + ' - ' + scs.classSubjectId.subjectId.subjectName}"
+                                data-bs-toggle="modal"
+                                data-bs-target="#editStudentClassSubjectModal"
+                                onclick="populateEditStudentClassSubjectModal(this)">
+                            &#128736;
+                        </button>
+                    </td>
+
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(studentClassSubjects)}">
+                    <td colspan="6" class="text-center">Không có dữ liệu</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Phân trang -->
+        <div class="d-flex justify-content-center mt-3">
+            <nav>
+                <ul class="pagination">
+                    <li class="page-item" th:classappend="${currentPage == 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/studentClassSubjects(page=${currentPage - 1})}">«</a>
+                    </li>
+                    <li class="page-item" th:each="i : ${#numbers.sequence(1, totalPages)}"
+                        th:classappend="${i == currentPage} ? 'active'">
+                        <a class="page-link" th:href="@{/studentClassSubjects(page=${i})}" th:text="${i}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == totalPages} ? 'disabled'">
+                        <a class="page-link" th:href="@{/studentClassSubjects(page=${currentPage + 1})}">»</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Modal Thêm -->
+        <div class="modal fade" id="addStudentClassSubjectModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form th:action="@{/studentClassSubjects/add}" method="post" th:object="${studentClassSubject}" class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Thêm học sinh vào lớp - môn học</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="student" class="form-label">Học sinh</label>
+                            <select id="student" name="studentId" class="form-select" required>
+                                <option value="" disabled selected>Chọn học sinh</option>
+                                <option th:each="s : ${students}" th:value="${s.id}" th:text="${s.firstName + ' ' + s.lastName}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="classSubject" class="form-label">Lớp - Môn học</label>
+                            <select id="classSubject" name="classSubjectId" class="form-select" required>
+                                <option value="" disabled selected>Chọn lớp - môn học</option>
+                                <option th:each="cs : ${classSubjects}"
+                                        th:value="${cs.id}"
+                                        th:text="${cs.classId.name + ' - ' + cs.subjectId.subjectName}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Thêm</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- Modal Chỉnh sửa -->
+        <div class="modal fade" id="editStudentClassSubjectModal" tabindex="-1">
+            <div class="modal-dialog">
+                <form id="editStudentClassSubjectForm" method="post" class="modal-content">
+                    <input type="hidden" id="edit-scs-id" name="id">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Chỉnh sửa học sinh theo lớp - môn học</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit-student-id" class="form-label">Học sinh</label>
+                            <select id="edit-student-id" name="studentId" class="form-select" required>
+                                <option th:each="s : ${students}" th:value="${s.id}" th:text="${s.firstName + ' ' + s.lastName}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-class-subject-id" class="form-label">Lớp - Môn học</label>
+                            <select id="edit-class-subject-id" name="classSubjectId" class="form-select" required>
+                                <option th:each="cs : ${classSubjects}" th:value="${cs.id}" th:text="${cs.classId.name + ' - ' + cs.subjectId.subjectName}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Cập nhật</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <script th:src="@{/js/main.js}"></script>
+    <div th:replace="base :: footer"></div>
+</body>
+</html>
+
